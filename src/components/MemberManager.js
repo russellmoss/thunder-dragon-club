@@ -1,97 +1,23 @@
 import React, { useState } from 'react';
-import { collection, addDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
 import MemberDetails from './MemberDetails';
+import MemberForm from './MemberForm';
 import '../styles/global.css';
 import googleSheetsService from '../utils/googleSheets';
 
 const MemberManager = () => {
-  // State for adding new members
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [memberType, setMemberType] = useState('non-trade'); // 'trade' or 'non-trade'
-  const [isAddingMember, setIsAddingMember] = useState(false);
-  
   // State for searching members
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('name'); // 'name' or 'email'
   const [members, setMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // State for feedback messages
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
-  // State for showing or hiding the add member form
-  const [showAddForm, setShowAddForm] = useState(false);
-
   const [selectedMember, setSelectedMember] = useState(null);
-
-  const handleAddMember = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMessage('');
-    setIsAddingMember(true);
-    
-    try {
-      // Check if member with this email already exists
-      const emailCheck = query(
-        collection(db, 'members'),
-        where('email', '==', email)
-      );
-      
-      const emailSnapshot = await getDocs(emailCheck);
-      
-      if (!emailSnapshot.empty) {
-        setError('A member with this email already exists.');
-        setIsAddingMember(false);
-        return;
-      }
-      
-      // Add the new member to Firestore
-      const docRef = await addDoc(collection(db, 'members'), {
-        firstName,
-        lastName,
-        phone,
-        email,
-        memberType,
-        points: 0,
-        createdAt: new Date()
-      });
-      
-      // Backup to Google Sheets
-      await googleSheetsService.backupMembers({
-        id: docRef.id,
-        firstName,
-        lastName,
-        phone,
-        email,
-        memberType,
-        points: 0,
-        createdAt: new Date()
-      });
-      
-      // Reset form
-      setFirstName('');
-      setLastName('');
-      setPhone('');
-      setEmail('');
-      setMemberType('non-trade');
-      
-      setSuccessMessage('Member added successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-      setShowAddForm(false);
-    } catch (error) {
-      console.error('Error adding member:', error);
-      setError('Failed to add member. Please try again.');
-    } finally {
-      setIsAddingMember(false);
-    }
-  };
+  const [showMemberForm, setShowMemberForm] = useState(false);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -174,74 +100,29 @@ const MemberManager = () => {
     setSelectedMember(member);
   };
 
+  const handleMemberFormClose = () => {
+    setShowMemberForm(false);
+  };
+
+  const handleMemberFormSuccess = (memberId) => {
+    setShowMemberForm(false);
+    setSuccessMessage('Member added successfully!');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
+
   return (
     <div className="member-manager-container">
       <div className="section-header">
         <h2>Member Management</h2>
         <Button 
-          text={showAddForm ? "Cancel" : "Add New Member"} 
-          onClick={() => setShowAddForm(!showAddForm)}
+          text="Add New Member" 
+          onClick={() => setShowMemberForm(true)}
+          className="primary-button"
         />
       </div>
       
       {error && <div className="error-message">{error}</div>}
       {successMessage && <div className="success-message">{successMessage}</div>}
-      
-      {showAddForm && (
-        <form onSubmit={handleAddMember} className="add-member-form">
-          <h3>Add New Member</h3>
-          <div className="form-row" style={{ display: 'flex', gap: '10px' }}>
-            <InputField 
-              label="First Name"
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Enter first name"
-              required
-            />
-            <InputField 
-              label="Last Name"
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Enter last name"
-              required
-            />
-          </div>
-          <InputField 
-            label="Phone Number"
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Enter phone number"
-            required
-          />
-          <InputField 
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email address"
-            required
-          />
-          <div className="input-field">
-            <label>Member Type</label>
-            <select 
-              value={memberType} 
-              onChange={(e) => setMemberType(e.target.value)}
-              required
-            >
-              <option value="non-trade">Non-Trade</option>
-              <option value="trade">Trade</option>
-            </select>
-          </div>
-          <Button 
-            text={isAddingMember ? "Adding..." : "Add Member"}
-            type="submit"
-            disabled={isAddingMember}
-          />
-        </form>
-      )}
       
       <form onSubmit={handleSearch} className="search-form">
         <h3>Search Members</h3>
@@ -313,6 +194,13 @@ const MemberManager = () => {
         <MemberDetails 
           member={selectedMember}
           onClose={() => setSelectedMember(null)}
+        />
+      )}
+
+      {showMemberForm && (
+        <MemberForm 
+          onClose={handleMemberFormClose}
+          onSuccess={handleMemberFormSuccess}
         />
       )}
     </div>

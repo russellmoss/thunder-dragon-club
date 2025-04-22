@@ -13,11 +13,13 @@ import BackupManager from './BackupManager';
 import DownloadGuide from './DownloadGuide';
 import CSVExport from './CSVExport';
 import ReportingDashboard from './ReportingDashboard';
+import MemberForm from './MemberForm';
 import '../styles/global.css';
 
 const Dashboard = () => {
   const [activeSection, setActiveSection] = useState('members');
   const [isLoading, setIsLoading] = useState(true);
+  const [showMemberForm, setShowMemberForm] = useState(false);
   const navigate = useNavigate();
 
   // Check if user is authenticated
@@ -40,6 +42,19 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Logout error:', error);
     }
+  };
+
+  const handleAddMember = () => {
+    setShowMemberForm(true);
+  };
+
+  const handleMemberFormClose = () => {
+    setShowMemberForm(false);
+  };
+
+  const handleMemberFormSuccess = (memberId) => {
+    setShowMemberForm(false);
+    // You can add any success handling here, like showing a notification
   };
 
   if (isLoading) {
@@ -113,6 +128,14 @@ const Dashboard = () => {
         )}
         {activeSection === 'reporting' && <ReportingDashboard />}
       </div>
+
+      {showMemberForm && (
+        <MemberForm 
+          onClose={handleMemberFormClose}
+          onSuccess={handleMemberFormSuccess}
+        />
+      )}
+
       <style jsx>{`
         .container {
           max-width: 1200px;
@@ -159,6 +182,28 @@ const Dashboard = () => {
           flex-direction: column;
           gap: 20px;
           width: 100%;
+        }
+
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+
+        .primary-button {
+          background-color: var(--accent-color);
+          color: #000000;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: bold;
+          transition: background-color 0.3s;
+        }
+
+        .primary-button:hover {
+          background-color: #FFD700;
         }
 
         .settings-section {
