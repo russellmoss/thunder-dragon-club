@@ -37,7 +37,7 @@ ChartJS.register(
 );
 
 const MemberDashboard = () => {
-  const { userData, signOut } = useAuth();
+  const { userData, memberSignOut } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
@@ -216,7 +216,7 @@ const MemberDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut();
+      await memberSignOut();
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
