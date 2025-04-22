@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
 import '../styles/global.css';
+import googleSheetsService from '../utils/googleSheets';
 
 const RedemptionManager = () => {
   // State for member selection
@@ -115,7 +116,7 @@ const RedemptionManager = () => {
       }
       
       // Add redemption record
-      await addDoc(collection(db, 'redemptions'), {
+      const redemptionData = {
         memberId: selectedMember.id,
         memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
         points: pointsToRedeem,
@@ -123,6 +124,14 @@ const RedemptionManager = () => {
         notes: description,
         date: new Date(),
         createdAt: new Date()
+      };
+      
+      const redemptionRef = await addDoc(collection(db, 'redemptions'), redemptionData);
+      
+      // Backup to Google Sheets
+      await googleSheetsService.backupRedemption({
+        id: redemptionRef.id,
+        ...redemptionData
       });
       
       // Update member's points

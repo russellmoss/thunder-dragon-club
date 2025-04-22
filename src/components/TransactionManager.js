@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
 import '../styles/global.css';
+import googleSheetsService from '../utils/googleSheets';
 
 const TransactionManager = () => {
   // State for member selection
@@ -139,6 +140,10 @@ const TransactionManager = () => {
     setIsSubmitting(true);
 
     try {
+      if (!selectedMember) {
+        throw new Error('Please select a member first.');
+      }
+
       const transactionAmount = parseFloat(amount);
       
       if (isNaN(transactionAmount) || transactionAmount <= 0) {
@@ -151,15 +156,21 @@ const TransactionManager = () => {
       const transactionData = {
         memberId: selectedMember.id,
         memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
+        memberType: selectedMember.memberType,
         amount: transactionAmount,
         date: new Date(date),
         notes: notes,
         pointsEarned: pointsEarned,
-        memberType: selectedMember.memberType,
         createdAt: new Date()
       };
       
-      await addDoc(collection(db, 'transactions'), transactionData);
+      const transactionRef = await addDoc(collection(db, 'transactions'), transactionData);
+      
+      // Backup to Google Sheets
+      await googleSheetsService.backupTransaction({
+        id: transactionRef.id,
+        ...transactionData
+      });
       
       // Update member's points
       const memberRef = doc(db, 'members', selectedMember.id);

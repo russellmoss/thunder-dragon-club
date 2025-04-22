@@ -10,6 +10,8 @@ import ReferralManager from '../components/ReferralManager';
 import RedemptionManager from '../components/RedemptionManager';
 import ConfigManager from '../components/ConfigManager';
 import CSVExport from '../components/CSVExport';
+import DownloadGuide from '../components/DownloadGuide';
+import BackupManager from '../components/BackupManager';
 import '../styles/global.css';
 
 const Dashboard = () => {
@@ -44,20 +46,18 @@ const Dashboard = () => {
       <Header />
       <div className="admin-header">
         <h1>Thunder Dragon Club Dashboard</h1>
-        <button onClick={handleLogout} className="button secondary-button">Logout</button>
+        <Button 
+          text="Logout" 
+          onClick={handleLogout}
+          className="secondary-button"
+        />
       </div>
       
       {isLoading ? (
         <div className="loading">Loading...</div>
       ) : (
         <>
-          <div className="dashboard-nav" style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '10px',
-            marginBottom: '20px',
-            width: '100%'
-          }}>
+          <div className="dashboard-nav">
             <Button 
               text="Members" 
               onClick={() => setActiveSection('members')}
@@ -79,9 +79,9 @@ const Dashboard = () => {
               className={activeSection === 'redemptions' ? 'active' : ''}
             />
             <Button 
-              text="Configuration" 
-              onClick={() => setActiveSection('config')}
-              className={activeSection === 'config' ? 'active' : ''}
+              text="Settings" 
+              onClick={() => setActiveSection('settings')}
+              className={activeSection === 'settings' ? 'active' : ''}
             />
           </div>
           
@@ -95,10 +95,49 @@ const Dashboard = () => {
             {activeSection === 'transactions' && <TransactionManager />}
             {activeSection === 'referrals' && <ReferralManager />}
             {activeSection === 'redemptions' && <RedemptionManager />}
-            {activeSection === 'config' && <ConfigManager />}
+            {activeSection === 'settings' && (
+              <>
+                <ConfigManager />
+                <BackupManager />
+                <div className="settings-section">
+                  <h2>Documentation</h2>
+                  <DownloadGuide />
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
+      <style>
+        {`
+          .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            width: 100%;
+          }
+          
+          .dashboard-nav {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+          }
+
+          .settings-section {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+          }
+
+          .settings-section h2 {
+            margin-bottom: 20px;
+            color: var(--header-color);
+          }
+        `}
+      </style>
     </div>
   );
 };

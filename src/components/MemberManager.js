@@ -5,6 +5,7 @@ import InputField from './InputField';
 import Button from './Button';
 import MemberDetails from './MemberDetails';
 import '../styles/global.css';
+import googleSheetsService from '../utils/googleSheets';
 
 const MemberManager = () => {
   // State for adding new members
@@ -52,7 +53,19 @@ const MemberManager = () => {
       }
       
       // Add the new member to Firestore
-      await addDoc(collection(db, 'members'), {
+      const docRef = await addDoc(collection(db, 'members'), {
+        firstName,
+        lastName,
+        phone,
+        email,
+        memberType,
+        points: 0,
+        createdAt: new Date()
+      });
+      
+      // Backup to Google Sheets
+      await googleSheetsService.backupMembers({
+        id: docRef.id,
         firstName,
         lastName,
         phone,

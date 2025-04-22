@@ -4,6 +4,7 @@ import { db } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
 import '../styles/global.css';
+import googleSheetsService from '../utils/googleSheets';
 
 const ReferralManager = () => {
   // State for referrer selection
@@ -161,7 +162,7 @@ const ReferralManager = () => {
       });
       
       // Record the referral
-      await addDoc(collection(db, 'referrals'), {
+      const referralData = {
         memberId: selectedReferrer.id,
         memberName: `${selectedReferrer.firstName} ${selectedReferrer.lastName}`,
         referralName: `${firstName} ${lastName}`,
@@ -169,6 +170,14 @@ const ReferralManager = () => {
         pointsEarned: pointsToAward,
         date: new Date(),
         createdAt: new Date()
+      };
+      
+      const referralRef = await addDoc(collection(db, 'referrals'), referralData);
+      
+      // Backup to Google Sheets
+      await googleSheetsService.backupReferral({
+        id: referralRef.id,
+        ...referralData
       });
       
       // Update referrer's points

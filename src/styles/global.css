@@ -741,4 +741,24 @@ form {
 .export-button:hover {
   background-color: #FFE44D;
   color: black;
+}
+
+/* Download Guide styles */
+.download-guide-section {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 15px 20px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.download-guide-section h3 {
+  margin: 0;
+  color: var(--header-color);
+}
+
+.download-guide-section .button {
+  margin: 0;
+  white-space: nowrap;
 } 
