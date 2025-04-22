@@ -3,7 +3,7 @@
   --primary-color: #8B0000;
   --secondary-color: #4A0404;
   --text-color: #FFFFFF;
-  --background-color: #000000;
+  --background-color: #1A1A1A;
   --accent-color: #FFD700;
   --header-color: #FFD700;   /* Yellow for headers */
   --button-bg: #FFD700;      /* Yellow for buttons */
@@ -661,10 +661,12 @@ form {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
 .tab-button {
   flex: 1;
+  min-width: 120px;
   max-width: 200px;
 }
 
@@ -761,4 +763,112 @@ form {
 .download-guide-section .button {
   margin: 0;
   white-space: nowrap;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  /* Dashboard navigation */
+  .dashboard-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+
+  .dashboard-nav .button {
+    max-width: none;
+    width: 100%;
+  }
+
+  /* Member details modal */
+  .member-details-modal {
+    padding: 10px;
+  }
+
+  .member-details-content {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .member-details-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .header-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .header-buttons .button {
+    width: 100%;
+  }
+
+  /* Member info section */
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .member-summary {
+    padding: 15px;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Tabs */
+  .member-details-tabs {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .tab-button {
+    max-width: none;
+    width: 100%;
+  }
+
+  /* Tables */
+  .admin-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    min-width: 120px;
+  }
+
+  /* Forms */
+  .form-row {
+    flex-direction: column;
+  }
+
+  .search-container {
+    flex-direction: column;
+  }
+
+  .search-type-selector {
+    width: 100%;
+  }
+
+  /* Container adjustments */
+  .container {
+    padding: 10px;
+  }
+
+  .dashboard-content {
+    padding: 15px;
+  }
+
+  /* Member manager */
+  .section-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
 } 

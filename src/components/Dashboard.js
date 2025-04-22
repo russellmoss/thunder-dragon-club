@@ -111,6 +111,8 @@ const Dashboard = () => {
           max-width: 1200px;
           margin: 0 auto;
           padding: 20px;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .admin-header {
@@ -119,6 +121,13 @@ const Dashboard = () => {
           align-items: center;
           margin-bottom: 20px;
           width: 100%;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .admin-header h1 {
+          font-size: 1.5rem;
+          margin: 0;
         }
         
         .dashboard-nav {
@@ -127,18 +136,22 @@ const Dashboard = () => {
           gap: 10px;
           margin-bottom: 20px;
           width: 100%;
+          flex-wrap: wrap;
         }
 
         .dashboard-content {
           background-color: rgba(0, 0, 0, 0.2);
           padding: 20px;
           border-radius: 8px;
+          width: 100%;
+          box-sizing: border-box;
         }
 
         .section-content {
           display: flex;
           flex-direction: column;
           gap: 20px;
+          width: 100%;
         }
 
         .settings-section {
@@ -159,6 +172,34 @@ const Dashboard = () => {
           height: 100vh;
           font-size: 1.2rem;
           color: var(--text-color);
+        }
+
+        @media (max-width: 768px) {
+          .container {
+            padding: 10px;
+          }
+
+          .admin-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .admin-header h1 {
+            font-size: 1.2rem;
+          }
+
+          .dashboard-nav {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .dashboard-nav .button {
+            width: 100%;
+          }
+
+          .dashboard-content {
+            padding: 15px;
+          }
         }
       `}</style>
     </div>
