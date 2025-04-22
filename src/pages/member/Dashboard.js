@@ -227,6 +227,59 @@ const MemberDashboard = () => {
     setShowProfileEditor(!showProfileEditor);
   };
 
+  const renderActivityItem = (activity) => {
+    const date = activity.date?.toDate ? 
+      activity.date.toDate().toLocaleDateString() : 
+      new Date(activity.date).toLocaleDateString();
+    
+    let activityType = '';
+    let description = '';
+    let pointsChange = 0;
+    let details = '';
+
+    if ('type' in activity && activity.type === 'manual_adjustment') {
+      activityType = 'adjustment';
+      description = 'Points Adjustment';
+      pointsChange = activity.pointsEarned;
+      details = activity.notes || '';
+    } else if ('pointsEarned' in activity) {
+      activityType = 'transaction';
+      description = `Purchase: ${activity.notes || 'Wine purchase'}`;
+      pointsChange = activity.pointsEarned;
+      if (activity.amount) {
+        details = `Amount: Nu. ${activity.amount.toLocaleString()}`;
+      }
+    } else if ('points' in activity) {
+      activityType = 'redemption';
+      description = `Redemption: ${activity.item || 'Points redeemed'}`;
+      pointsChange = -activity.points;
+      details = activity.notes || '';
+    } else if ('referralName' in activity) {
+      activityType = 'referral';
+      description = `Referral: ${activity.referralName}`;
+      pointsChange = activity.pointsEarned;
+      details = activity.notes || '';
+    }
+
+    return (
+      <div className={`history-item ${activityType}`}>
+        <div className="history-item-header">
+          <span className="history-date">{date}</span>
+          <span className={`history-points ${pointsChange >= 0 ? 'positive' : 'negative'}`}>
+            {pointsChange >= 0 ? '+' : ''}{pointsChange} points
+          </span>
+        </div>
+        <div className="history-description">
+          {description}
+          {details && <div className="history-details">{details}</div>}
+          {activity.adjustedBy && (
+            <div className="history-admin">Adjusted by: {activity.adjustedBy}</div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (isLoading) {
     return <div className="loading">Loading your dashboard...</div>;
   }
@@ -335,43 +388,11 @@ const MemberDashboard = () => {
                 return dateB - dateA;
               })
               .slice(0, 10)
-              .map((activity, index) => {
-                const date = activity.date?.toDate ? 
-                  activity.date.toDate().toLocaleDateString() : 
-                  new Date(activity.date).toLocaleDateString();
-                
-                let activityType = '';
-                let description = '';
-                let pointsChange = 0;
-                
-                if ('pointsEarned' in activity) {
-                  activityType = 'transaction';
-                  description = `Purchase: ${activity.notes || 'Wine purchase'}`;
-                  pointsChange = activity.pointsEarned;
-                } else if ('points' in activity) {
-                  activityType = 'redemption';
-                  description = `Redemption: ${activity.item || 'Points redeemed'}`;
-                  pointsChange = -activity.points;
-                } else if ('referralName' in activity) {
-                  activityType = 'referral';
-                  description = `Referral: ${activity.referralName}`;
-                  pointsChange = activity.pointsEarned;
-                }
-                
-                return (
-                  <div key={index} className={`history-item ${activityType}`}>
-                    <div className="history-item-header">
-                      <span className="history-date">{date}</span>
-                      <span className={`history-points ${pointsChange >= 0 ? 'positive' : 'negative'}`}>
-                        {pointsChange >= 0 ? '+' : ''}{pointsChange} points
-                      </span>
-                    </div>
-                    <div className="history-description">
-                      {description}
-                    </div>
-                  </div>
-                );
-              })}
+              .map((activity, index) => (
+                <React.Fragment key={activity.id || index}>
+                  {renderActivityItem(activity)}
+                </React.Fragment>
+              ))}
               
             {[...transactions, ...redemptions, ...referrals].length === 0 && (
               <p className="no-data-message">No activity recorded yet</p>
@@ -558,10 +579,15 @@ const MemberDashboard = () => {
           padding: 15px;
           border-radius: 8px;
           border-left: 4px solid transparent;
+          margin-bottom: 10px;
         }
         
         .history-item.transaction {
           border-left-color: var(--accent-color);
+        }
+        
+        .history-item.adjustment {
+          border-left-color: #9C27B0;
         }
         
         .history-item.redemption {
@@ -598,6 +624,20 @@ const MemberDashboard = () => {
         
         .history-description {
           color: var(--text-color);
+          font-weight: 500;
+        }
+        
+        .history-details {
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.7);
+          margin-top: 4px;
+        }
+        
+        .history-admin {
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-top: 4px;
+          font-style: italic;
         }
         
         .no-data-message {

@@ -149,20 +149,28 @@ const TransactionManager = () => {
       if (isNaN(transactionAmount) || transactionAmount <= 0) {
         throw new Error('Please enter a valid transaction amount.');
       }
+
+      // Ensure we have a valid memberType
+      const memberType = selectedMember.memberType || 'non-trade';
       
-      const pointsEarned = calculatePoints(amount, selectedMember.memberType);
+      const pointsEarned = calculatePoints(amount, memberType);
       
-      // Record the transaction
+      // Record the transaction with validated data
       const transactionData = {
         memberId: selectedMember.id,
         memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
-        memberType: selectedMember.memberType,
+        memberType: memberType, // Use the validated memberType
         amount: transactionAmount,
         date: new Date(date),
-        notes: notes,
+        notes: notes.trim() || 'Wine purchase', // Provide default note if empty
         pointsEarned: pointsEarned,
         createdAt: new Date()
       };
+
+      // Validate all required fields
+      if (!transactionData.memberId || !transactionData.memberName) {
+        throw new Error('Invalid member data. Please try selecting the member again.');
+      }
       
       const transactionRef = await addDoc(collection(db, 'transactions'), transactionData);
       
@@ -175,7 +183,8 @@ const TransactionManager = () => {
       // Update member's points
       const memberRef = doc(db, 'members', selectedMember.id);
       await updateDoc(memberRef, {
-        points: (selectedMember.points || 0) + pointsEarned
+        points: (selectedMember.points || 0) + pointsEarned,
+        memberType: memberType // Also ensure member document has memberType
       });
       
       setSuccessMessage(`Transaction recorded successfully! ${pointsEarned} points awarded.`);
