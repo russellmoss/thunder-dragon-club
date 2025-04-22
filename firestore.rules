@@ -1,0 +1,41 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Members collection
+    match /members/{memberId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Transactions collection
+    match /transactions/{transactionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Referrals collection
+    match /referrals/{referralId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Redemptions collection
+    match /redemptions/{redemptionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Config collection
+    match /config/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 
