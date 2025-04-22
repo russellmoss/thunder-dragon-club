@@ -1,7 +1,7 @@
 import React from 'react';
 import '../styles/global.css';
 
-const InputField = ({ label, type, value, onChange, placeholder, required, min, step }) => {
+const InputField = ({ label, type, value = '', onChange, placeholder, required, min, step }) => {
   return (
     <div className="input-field">
       <label>{label}</label>
@@ -15,7 +15,7 @@ const InputField = ({ label, type, value, onChange, placeholder, required, min, 
         step={step}
       />
 
-      <style jsx>{`
+      <style jsx="true">{`
         .input-field {
           margin-bottom: 15px;
         }

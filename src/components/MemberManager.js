@@ -112,15 +112,6 @@ const MemberManager = () => {
 
   return (
     <div className="member-manager-container">
-      <div className="section-header">
-        <h2>Member Management</h2>
-        <Button 
-          text="Add New Member" 
-          onClick={() => setShowMemberForm(true)}
-          className="primary-button"
-        />
-      </div>
-      
       {error && <div className="error-message">{error}</div>}
       {successMessage && <div className="success-message">{successMessage}</div>}
       

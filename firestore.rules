@@ -2,35 +2,104 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is authenticated
+    // Helper functions
     function isAuthenticated() {
       return request.auth != null;
     }
-
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    
+    function isMember() {
+      return isAuthenticated();
+    }
+    
+    function isOwnDocument(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isOwnEmail(email) {
+      return isAuthenticated() && request.auth.token.email == email;
+    }
+    
+    function isOwnMemberData(memberId) {
+      return isAuthenticated() && (
+        isAdmin() ||
+        isOwnDocument(memberId) ||
+        get(/databases/$(database)/documents/members/$(memberId)).data.email == request.auth.token.email
+      );
+    }
+    
     // Members collection
     match /members/{memberId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isOwnDocument(memberId) ||
+        resource.data.email == request.auth.token.email
+      );
+      allow list: if isAuthenticated() && (
+        isAdmin() ||
+        request.query.limit <= 1 && (
+          (request.query.filters.size() == 1 && 
+           request.query.filters[0].op == '==' && 
+           request.query.filters[0].path == 'email' && 
+           request.query.filters[0].value == request.auth.token.email)
+        )
+      );
+      allow create: if isAdmin();
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        isOwnDocument(memberId) ||
+        resource.data.email == request.auth.token.email
+      );
+      allow delete: if isAdmin();
     }
-
+    
     // Transactions collection
     match /transactions/{transactionId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isOwnMemberData(resource.data.memberId)
+      );
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
-
-    // Referrals collection
-    match /referrals/{referralId} {
-      allow read, write: if isAuthenticated();
-    }
-
+    
     // Redemptions collection
     match /redemptions/{redemptionId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isOwnMemberData(resource.data.memberId)
+      );
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Referrals collection
+    match /referrals/{referralId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        isOwnMemberData(resource.data.memberId)
+      );
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Admins collection - Allow read access to authenticated users
+    match /admins/{adminId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // Config collection
     match /config/{configId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // Default deny all other collections
