@@ -12,6 +12,7 @@ import ConfigManager from './ConfigManager';
 import BackupManager from './BackupManager';
 import DownloadGuide from './DownloadGuide';
 import CSVExport from './CSVExport';
+import ReportingDashboard from './ReportingDashboard';
 import '../styles/global.css';
 
 const Dashboard = () => {
@@ -83,6 +84,11 @@ const Dashboard = () => {
           onClick={() => setActiveSection('settings')}
           className={activeSection === 'settings' ? 'active' : ''}
         />
+        <Button 
+          text="Reporting" 
+          onClick={() => setActiveSection('reporting')}
+          className={activeSection === 'reporting' ? 'active' : ''}
+        />
       </div>
       
       <div className="dashboard-content">
@@ -105,6 +111,7 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+        {activeSection === 'reporting' && <ReportingDashboard />}
       </div>
       <style jsx>{`
         .container {
