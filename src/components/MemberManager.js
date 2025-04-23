@@ -165,7 +165,13 @@ const MemberManager = () => {
                   <td>{`${member.firstName} ${member.lastName}`}</td>
                   <td>{member.email}</td>
                   <td>{member.phone}</td>
-                  <td>{member.memberType === 'trade' ? 'Trade' : 'Non-Trade'}</td>
+                  <td>
+                    <span className={`member-type ${member.memberType}`}>
+                      {member.memberType === 'trade' ? 'Trade Member' :
+                       member.memberType === 'referral' ? 'Referral Member' :
+                       'Non-Trade Member'}
+                    </span>
+                  </td>
                   <td>{member.points || 0}</td>
                   <td>
                     <Button 
@@ -194,6 +200,91 @@ const MemberManager = () => {
           onSuccess={handleMemberFormSuccess}
         />
       )}
+
+      <style jsx>{`
+        .member-manager-container {
+          padding: 20px;
+        }
+
+        .search-form {
+          margin-bottom: 30px;
+        }
+
+        .search-container {
+          display: flex;
+          gap: 15px;
+          align-items: flex-end;
+        }
+
+        .search-type-selector {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .search-type-selector select {
+          padding: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+          background-color: rgba(255, 255, 255, 0.1);
+          color: var(--text-color);
+        }
+
+        .table-container {
+          background-color: var(--background-color);
+          border-radius: 8px;
+          overflow: hidden;
+          margin-top: 20px;
+        }
+
+        .member-type {
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.9rem;
+        }
+
+        .member-type.trade {
+          background-color: rgba(255, 215, 0, 0.2);
+          color: var(--accent-color);
+        }
+
+        .member-type.non-trade {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: var(--text-color);
+        }
+
+        .member-type.referral {
+          background-color: rgba(139, 0, 0, 0.2);
+          color: #F44336;
+        }
+
+        .error-message {
+          background-color: rgba(244, 67, 54, 0.1);
+          color: #F44336;
+          padding: 15px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+        }
+
+        .success-message {
+          background-color: rgba(76, 175, 80, 0.1);
+          color: #4CAF50;
+          padding: 15px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+          .search-container {
+            flex-direction: column;
+            gap: 10px;
+          }
+
+          .search-container > * {
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 };

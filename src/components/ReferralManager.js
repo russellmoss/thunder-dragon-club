@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, query, where, getDocs, doc, updateDoc, getDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
+import ReferralForm from './ReferralForm';
 import '../styles/global.css';
-import googleSheetsService from '../utils/googleSheets';
 
 const ReferralManager = () => {
   // State for referrer selection
@@ -15,13 +15,7 @@ const ReferralManager = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  // State for new member form
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showReferralForm, setShowReferralForm] = useState(false);
 
   // Add state for points configuration
   const [pointsConfig, setPointsConfig] = useState({
@@ -125,81 +119,13 @@ const ReferralManager = () => {
     setSelectedReferrer(member);
     setSearchTerm('');
     setMembers([]);
+    setShowReferralForm(true);
   };
 
-  const handleSubmitReferral = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMessage('');
-    setIsSubmitting(true);
-
-    try {
-      // Check if member with this email already exists
-      const emailCheck = query(
-        collection(db, 'members'),
-        where('email', '==', email)
-      );
-      
-      const emailSnapshot = await getDocs(emailCheck);
-      
-      if (!emailSnapshot.empty) {
-        throw new Error('A member with this email already exists.');
-      }
-
-      // Calculate points based on member type
-      const pointsToAward = selectedReferrer.memberType === 'trade' 
-        ? pointsConfig.tradeReferralPoints 
-        : pointsConfig.nonTradeReferralPoints;
-      
-      // Add the new member to Firestore
-      const newMemberRef = await addDoc(collection(db, 'members'), {
-        firstName,
-        lastName,
-        phone,
-        email,
-        points: 0,
-        createdAt: new Date()
-      });
-      
-      // Record the referral
-      const referralData = {
-        memberId: selectedReferrer.id,
-        memberName: `${selectedReferrer.firstName} ${selectedReferrer.lastName}`,
-        referralName: `${firstName} ${lastName}`,
-        notes: `Referred new member: ${firstName} ${lastName}`,
-        pointsEarned: pointsToAward,
-        date: new Date(),
-        createdAt: new Date()
-      };
-      
-      const referralRef = await addDoc(collection(db, 'referrals'), referralData);
-      
-      // Backup to Google Sheets
-      await googleSheetsService.backupReferral({
-        id: referralRef.id,
-        ...referralData
-      });
-      
-      // Update referrer's points
-      const referrerRef = doc(db, 'members', selectedReferrer.id);
-      await updateDoc(referrerRef, {
-        points: (selectedReferrer.points || 0) + pointsToAward
-      });
-      
-      setSuccessMessage(`Referral processed successfully! ${pointsToAward} points awarded.`);
-      
-      // Reset form
-      setFirstName('');
-      setLastName('');
-      setEmail('');
-      setPhone('');
-      setSelectedReferrer(null);
-    } catch (error) {
-      console.error('Referral error:', error);
-      setError(error.message || 'Failed to process referral. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleReferralSuccess = () => {
+    setShowReferralForm(false);
+    setSelectedReferrer(null);
+    setSuccessMessage('Referral registered successfully!');
   };
 
   return (
@@ -213,7 +139,7 @@ const ReferralManager = () => {
       
       {!selectedReferrer ? (
         <form onSubmit={handleSearch} className="search-form">
-          <h3>Search Referrer</h3>
+          <h3>Search Referring Member</h3>
           <div className="search-container">
             <InputField 
               label="Search Term"
@@ -241,14 +167,18 @@ const ReferralManager = () => {
           </div>
         </form>
       ) : (
-        <div className="selected-referrer">
-          <h3>Selected Referrer</h3>
+        <div className="selected-member">
+          <h3>Selected Referring Member</h3>
           <p>Name: {selectedReferrer.firstName} {selectedReferrer.lastName}</p>
           <p>Email: {selectedReferrer.email}</p>
+          <p>Member Type: {selectedReferrer.memberType === 'trade' ? 'Trade' : 'Non-Trade'}</p>
           <p>Current Points: {selectedReferrer.points || 0}</p>
           <Button 
-            text="Change Referrer"
-            onClick={() => setSelectedReferrer(null)}
+            text="Change Member"
+            onClick={() => {
+              setSelectedReferrer(null);
+              setShowReferralForm(false);
+            }}
             className="secondary-button"
           />
         </div>
@@ -263,6 +193,7 @@ const ReferralManager = () => {
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Member Type</th>
                 <th>Points</th>
                 <th>Actions</th>
               </tr>
@@ -272,6 +203,7 @@ const ReferralManager = () => {
                 <tr key={member.id}>
                   <td>{`${member.firstName} ${member.lastName}`}</td>
                   <td>{member.email}</td>
+                  <td>{member.memberType === 'trade' ? 'Trade' : 'Non-Trade'}</td>
                   <td>{member.points || 0}</td>
                   <td>
                     <Button 
@@ -286,51 +218,99 @@ const ReferralManager = () => {
           </table>
         </div>
       ) : null}
-      
-      {selectedReferrer && (
-        <form onSubmit={handleSubmitReferral} className="referral-form">
-          <h3>New Member Details</h3>
-          <div className="form-row">
-            <InputField 
-              label="First Name"
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              placeholder="Enter first name"
-              required
-            />
-            <InputField 
-              label="Last Name"
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              placeholder="Enter last name"
-              required
-            />
-          </div>
-          <InputField 
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email address"
-            required
-          />
-          <InputField 
-            label="Phone"
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Enter phone number"
-            required
-          />
-          <Button 
-            text={isSubmitting ? "Processing..." : "Submit Referral"}
-            type="submit"
-            disabled={isSubmitting}
-          />
-        </form>
+
+      {showReferralForm && selectedReferrer && (
+        <ReferralForm
+          referringMember={selectedReferrer}
+          onClose={() => setShowReferralForm(false)}
+          onSuccess={handleReferralSuccess}
+        />
       )}
+
+      <style jsx>{`
+        .referral-manager-container {
+          padding: 20px;
+        }
+
+        .section-header {
+          margin-bottom: 20px;
+        }
+
+        .search-form {
+          margin-bottom: 30px;
+        }
+
+        .search-container {
+          display: flex;
+          gap: 15px;
+          align-items: flex-end;
+        }
+
+        .search-type-selector {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+        }
+
+        .search-type-selector select {
+          padding: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+          background-color: rgba(255, 255, 255, 0.1);
+          color: var(--text-color);
+        }
+
+        .selected-member {
+          background-color: rgba(255, 255, 255, 0.1);
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+
+        .selected-member h3 {
+          margin: 0 0 15px 0;
+          color: var(--header-color);
+        }
+
+        .selected-member p {
+          margin: 5px 0;
+          color: var(--text-color);
+        }
+
+        .table-container {
+          margin-top: 20px;
+          background-color: var(--background-color);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .error-message {
+          background-color: rgba(244, 67, 54, 0.1);
+          color: #F44336;
+          padding: 15px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+        }
+
+        .success-message {
+          background-color: rgba(76, 175, 80, 0.1);
+          color: #4CAF50;
+          padding: 15px;
+          border-radius: 4px;
+          margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+          .search-container {
+            flex-direction: column;
+            gap: 10px;
+          }
+
+          .search-container > * {
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 };

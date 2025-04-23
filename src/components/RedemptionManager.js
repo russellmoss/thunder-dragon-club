@@ -114,6 +114,11 @@ const RedemptionManager = () => {
       if (pointsToRedeem > selectedMember.points) {
         throw new Error('Member does not have enough points for this redemption.');
       }
+
+      // Check if member is a referral type
+      if (selectedMember.memberType === 'referral') {
+        throw new Error('Referral members cannot redeem points until they convert to trade or non-trade membership.');
+      }
       
       // Add redemption record
       const redemptionData = {

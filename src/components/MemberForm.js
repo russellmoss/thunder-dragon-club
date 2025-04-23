@@ -105,6 +105,7 @@ const MemberForm = ({ onClose, onSuccess }) => {
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="Enter first name"
+                  required
                 />
               </div>
               <div className="form-group">
@@ -115,6 +116,7 @@ const MemberForm = ({ onClose, onSuccess }) => {
                   value={formData.lastName}
                   onChange={handleChange}
                   placeholder="Enter last name"
+                  required
                 />
               </div>
               <div className="form-group">
@@ -125,6 +127,7 @@ const MemberForm = ({ onClose, onSuccess }) => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter email"
+                  required
                 />
               </div>
               <div className="form-group">
@@ -135,6 +138,7 @@ const MemberForm = ({ onClose, onSuccess }) => {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="Enter phone number"
+                  required
                 />
               </div>
               <div className="form-buttons">
@@ -154,15 +158,24 @@ const MemberForm = ({ onClose, onSuccess }) => {
                     className={`type-option ${formData.memberType === 'trade' ? 'selected' : ''}`}
                     onClick={() => handleChange({ target: { name: 'memberType', value: 'trade' } })}
                   >
-                    Trade Member
+                    <div className="type-header">Trade Member</div>
+                    <div className="type-description">
+                      For industry professionals and business partners
+                    </div>
                   </button>
                   <button
                     type="button"
                     className={`type-option ${formData.memberType === 'non-trade' ? 'selected' : ''}`}
                     onClick={() => handleChange({ target: { name: 'memberType', value: 'non-trade' } })}
                   >
-                    Non-Trade Member
+                    <div className="type-header">Non-Trade Member</div>
+                    <div className="type-description">
+                      For regular customers and wine enthusiasts
+                    </div>
                   </button>
+                </div>
+                <div className="type-note">
+                  Note: Referral members can only be created through the referral process
                 </div>
               </div>
               <div className="form-buttons">
@@ -281,25 +294,42 @@ const MemberForm = ({ onClose, onSuccess }) => {
         }
 
         .type-option {
-          flex: 1;
-          padding: 30px;
-          border: 3px solid var(--accent-color);
-          border-radius: 12px;
-          background-color: rgba(255, 255, 255, 0.1);
-          color: var(--text-color);
-          font-size: 20px;
-          cursor: pointer;
-          transition: all 0.3s;
-          min-height: 100px;
           display: flex;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
+          flex-direction: column;
+          gap: 8px;
+          padding: 15px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 6px;
+          background-color: rgba(255, 255, 255, 0.1);
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-align: left;
+          width: 100%;
         }
 
         .type-option.selected {
-          background-color: var(--accent-color);
-          color: #000000;
+          background-color: rgba(255, 215, 0, 0.1);
+          border-color: var(--accent-color);
+        }
+
+        .type-header {
+          font-size: 1.1rem;
+          font-weight: bold;
+          color: var(--header-color);
+        }
+
+        .type-description {
+          font-size: 0.9rem;
+          color: var(--text-color);
+          opacity: 0.8;
+        }
+
+        .type-note {
+          margin-top: 10px;
+          font-size: 0.9rem;
+          color: var(--text-color);
+          opacity: 0.7;
+          font-style: italic;
         }
 
         .form-buttons {

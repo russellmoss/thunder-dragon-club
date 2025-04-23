@@ -25,6 +25,7 @@ const MemberDetails = ({ member, onClose }) => {
     phone: member.phone || '',
     memberType: member.memberType || 'non-trade'
   });
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchMemberData = async () => {
     setIsLoading(true);
@@ -382,11 +383,13 @@ const MemberDetails = ({ member, onClose }) => {
   const handleSave = async () => {
     setError('');
     setSuccess('');
+    setIsSaving(true);
     
     try {
       // Basic validation
       if (!editedData.firstName.trim() || !editedData.lastName.trim() || !editedData.email.trim()) {
         setError('Name and email are required fields');
+        setIsSaving(false);
         return;
       }
 
@@ -394,12 +397,14 @@ const MemberDetails = ({ member, onClose }) => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(editedData.email)) {
         setError('Please enter a valid email address');
+        setIsSaving(false);
         return;
       }
 
       // Phone validation (optional)
       if (editedData.phone && !/^\+?[\d\s-()]+$/.test(editedData.phone)) {
         setError('Please enter a valid phone number');
+        setIsSaving(false);
         return;
       }
 
@@ -425,27 +430,171 @@ const MemberDetails = ({ member, onClose }) => {
     } catch (error) {
       console.error('Error updating member:', error);
       setError('Failed to update member details. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const getMemberTypeDisplay = (type) => {
+    switch (type) {
+      case 'trade':
+        return 'Trade Member';
+      case 'non-trade':
+        return 'Non-Trade Member';
+      case 'referral':
+        return 'Referral Member';
+      default:
+        return 'Unknown Member Type';
+    }
+  };
+
+  const renderPersonalInfo = () => (
+    <div className="info-section">
+      <div className="section-header">
+        <h3>Personal Information</h3>
+        {!isEditing && (
+          <Button
+            text="Edit"
+            onClick={handleEditToggle}
+            className="small-button"
+          />
+        )}
+      </div>
+      {isEditing ? (
+        <div className="edit-form">
+          <div className="form-group">
+            <label>First Name:</label>
+            <input
+              type="text"
+              value={editedData.firstName}
+              onChange={(e) => handleInputChange('firstName', e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Last Name:</label>
+            <input
+              type="text"
+              value={editedData.lastName}
+              onChange={(e) => handleInputChange('lastName', e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Email:</label>
+            <input
+              type="email"
+              value={editedData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Phone:</label>
+            <input
+              type="tel"
+              value={editedData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label>Member Type:</label>
+            <div className="custom-select">
+              <select
+                value={editedData.memberType}
+                onChange={(e) => handleInputChange('memberType', e.target.value)}
+                disabled={isSaving}
+              >
+                <option value="trade">Trade Member</option>
+                <option value="non-trade">Non-Trade Member</option>
+                <option value="referral">Referral Member</option>
+              </select>
+              <div className="select-arrow"></div>
+            </div>
+          </div>
+          <div className="edit-buttons">
+            <Button 
+              text="Cancel" 
+              onClick={handleEditToggle} 
+              className="secondary-button"
+              disabled={isSaving}
+            />
+            <Button 
+              text={
+                isSaving ? (
+                  <span className="loading-text">
+                    <span className="spinner"></span>
+                    Saving...
+                  </span>
+                ) : "Save"
+              }
+              onClick={handleSave}
+              disabled={isSaving}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="info-grid">
+          <div className="info-item">
+            <label>First Name:</label>
+            <span>{memberData.firstName}</span>
+          </div>
+          <div className="info-item">
+            <label>Last Name:</label>
+            <span>{memberData.lastName}</span>
+          </div>
+          <div className="info-item">
+            <label>Email:</label>
+            <span>{memberData.email}</span>
+          </div>
+          <div className="info-item">
+            <label>Phone:</label>
+            <span>{memberData.phone || 'Not provided'}</span>
+          </div>
+          <div className="info-item">
+            <label>Member ID:</label>
+            <span>{memberData.id}</span>
+          </div>
+          <div className="info-item">
+            <label>Member Since:</label>
+            <span>{formatDate(memberData.createdAt)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderPointsInfo = () => (
+    <div className="info-section">
+      <h3>Points Information</h3>
+      <div className="info-grid">
+        <div className="info-item">
+          <label>Current Points:</label>
+          <span>{memberData.points || 0}</span>
+        </div>
+        <div className="info-item">
+          <label>Member Type:</label>
+          <span className={`member-type ${memberData.memberType}`}>
+            {getMemberTypeDisplay(memberData.memberType)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="member-details-overlay">
       <div className="member-details-container">
         <div className="details-header">
           <h2>Member Details</h2>
-          <div className="header-actions">
-            <button 
-              className="adjust-button"
+          <div className="header-buttons">
+            <Button 
+              text="Adjust Points" 
               onClick={handleAdjustPoints}
-            >
-              Adjust Points
-            </button>
-            <button 
-              className="delete-button"
+              className="secondary-button"
+            />
+            <Button 
+              text="Delete Member" 
               onClick={handleDeleteMember}
-            >
-              Delete Member
-            </button>
+              className="delete-button"
+            />
             <button className="close-button" onClick={onClose}>×</button>
           </div>
         </div>
@@ -453,141 +602,53 @@ const MemberDetails = ({ member, onClose }) => {
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}
 
-        {isLoading ? (
-          <div className="loading">Loading member details...</div>
-        ) : (
-          <div className="details-content">
-            <div className="detail-section">
-              <div className="section-header">
-                <h3>Personal Information</h3>
-                <button 
-                  className={`edit-button ${isEditing ? 'active' : ''}`}
-                  onClick={handleEditToggle}
-                >
-                  {isEditing ? 'Cancel' : 'Edit'}
-                </button>
-              </div>
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <span className="detail-label">First Name:</span>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className="edit-input"
-                    />
-                  ) : (
-                    <span className="detail-value">{memberData.firstName}</span>
-                  )}
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Last Name:</span>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editedData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className="edit-input"
-                    />
-                  ) : (
-                    <span className="detail-value">{memberData.lastName}</span>
-                  )}
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Email:</span>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      value={editedData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="edit-input"
-                    />
-                  ) : (
-                    <span className="detail-value">{memberData.email}</span>
-                  )}
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Phone:</span>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      value={editedData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className="edit-input"
-                    />
-                  ) : (
-                    <span className="detail-value">{memberData.phone || 'Not provided'}</span>
-                  )}
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Member ID:</span>
-                  <span className="detail-value">{memberData.id}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Member Since:</span>
-                  <span className="detail-value">
-                    {memberData.createdAt?.toDate ? 
-                      memberData.createdAt.toDate().toLocaleDateString() : 
-                      new Date(memberData.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            </div>
+        {renderPersonalInfo()}
+        {renderPointsInfo()}
+        {renderSummary()}
 
-            <div className="detail-section">
-              <h3>Points Information</h3>
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <span className="detail-label">Current Points:</span>
-                  <span className="detail-value points">{memberData.points || 0}</span>
-                </div>
-                <div className="detail-item">
-                  <span className="detail-label">Member Type:</span>
-                  {isEditing ? (
-                    <select
-                      value={editedData.memberType}
-                      onChange={(e) => handleInputChange('memberType', e.target.value)}
-                      className="edit-input"
-                    >
-                      <option value="non-trade">Non-Trade Member</option>
-                      <option value="trade">Trade Member</option>
-                    </select>
-                  ) : (
-                    <span className="detail-value member-type">
-                      {memberData.memberType === 'trade' ? 'Trade Member' : 'Non-Trade Member'}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+        <div className="activity-tabs">
+          <button
+            className={`tab-button ${activeTab === 'transactions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('transactions')}
+          >
+            Transactions
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'redemptions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('redemptions')}
+          >
+            Redemptions
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'referrals' ? 'active' : ''}`}
+            onClick={() => setActiveTab('referrals')}
+          >
+            Referrals
+          </button>
+        </div>
 
-            {isEditing && (
-              <div className="save-section">
-                <button className="save-button" onClick={handleSave}>
-                  Save Changes
-                </button>
-              </div>
-            )}
-          </div>
+        <div className="tab-content">
+          {activeTab === 'transactions' && renderTransactions()}
+          {activeTab === 'redemptions' && renderRedemptions()}
+          {activeTab === 'referrals' && renderReferrals()}
+        </div>
+
+        {showAdjustmentModal && (
+          <PointAdjustmentModal
+            member={memberData}
+            onClose={() => setShowAdjustmentModal(false)}
+            onSuccess={handleAdjustmentSuccess}
+          />
+        )}
+
+        {showDeleteModal && (
+          <DeleteMemberModal
+            member={memberData}
+            onClose={() => setShowDeleteModal(false)}
+            onSuccess={handleDeleteSuccess}
+          />
         )}
       </div>
-
-      {showAdjustmentModal && (
-        <PointAdjustmentModal
-          member={memberData}
-          onClose={() => setShowAdjustmentModal(false)}
-          onSuccess={handleAdjustmentSuccess}
-        />
-      )}
-
-      {showDeleteModal && (
-        <DeleteMemberModal
-          member={memberData}
-          onClose={() => setShowDeleteModal(false)}
-          onSuccess={handleDeleteSuccess}
-        />
-      )}
 
       <style jsx>{`
         .member-details-overlay {
@@ -618,7 +679,7 @@ const MemberDetails = ({ member, onClose }) => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 20px;
+          padding: 20px 30px;
           border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -627,7 +688,7 @@ const MemberDetails = ({ member, onClose }) => {
           color: var(--header-color);
         }
 
-        .header-actions {
+        .header-buttons {
           display: flex;
           gap: 10px;
           align-items: center;
@@ -662,7 +723,86 @@ const MemberDetails = ({ member, onClose }) => {
         }
 
         .details-content {
+          padding: 30px;
+        }
+
+        .info-section {
+          padding: 0 30px;
+          margin-bottom: 30px;
+        }
+
+        .member-summary {
+          padding: 0 30px;
+          margin-bottom: 30px;
+        }
+
+        .activity-tabs {
+          display: flex;
+          gap: 15px;
+          padding: 0 30px;
+          margin-bottom: 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          padding-bottom: 15px;
+        }
+
+        .tab-button {
+          padding: 12px 24px;
+          background-color: rgba(255, 255, 255, 0.1);
+          border: none;
+          border-radius: 6px;
+          color: var(--text-color);
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          min-width: 140px;
+          font-weight: 500;
+        }
+
+        .tab-button:hover {
+          background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-button.active {
+          background-color: var(--accent-color);
+          color: #000000;
+          font-weight: bold;
+        }
+
+        .tab-content {
+          padding: 0 30px 30px 30px;
+        }
+
+        .details-table-container {
+          background-color: rgba(255, 255, 255, 0.05);
+          border-radius: 8px;
           padding: 20px;
+          margin-top: 20px;
+        }
+
+        .details-table-container h3 {
+          margin: 0 0 20px 0;
+          color: var(--header-color);
+        }
+
+        .admin-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .admin-table th {
+          text-align: left;
+          padding: 12px;
+          border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+          color: var(--accent-color);
+        }
+
+        .admin-table td {
+          padding: 12px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .admin-table tr:last-child td {
+          border-bottom: none;
         }
 
         .detail-section {
@@ -704,8 +844,24 @@ const MemberDetails = ({ member, onClose }) => {
         }
 
         .member-type {
-          color: var(--accent-color);
+          padding: 4px 8px;
+          border-radius: 4px;
           font-weight: bold;
+        }
+
+        .member-type.trade {
+          background-color: rgba(255, 215, 0, 0.2);
+          color: var(--accent-color);
+        }
+
+        .member-type.non-trade {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: var(--text-color);
+        }
+
+        .member-type.referral {
+          background-color: rgba(139, 0, 0, 0.2);
+          color: #F44336;
         }
 
         .error-message {
@@ -723,7 +879,7 @@ const MemberDetails = ({ member, onClose }) => {
         }
 
         @media (max-width: 600px) {
-          .header-actions {
+          .header-buttons {
             flex-direction: column;
             align-items: flex-end;
           }
@@ -810,6 +966,96 @@ const MemberDetails = ({ member, onClose }) => {
           background-color: rgba(76, 175, 80, 0.1);
           border-radius: 4px;
           margin: 20px;
+        }
+
+        .custom-select {
+          position: relative;
+          width: 100%;
+        }
+
+        .custom-select select {
+          appearance: none;
+          width: 100%;
+          padding: 12px;
+          padding-right: 30px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 6px;
+          background-color: rgba(255, 255, 255, 0.9);
+          color: #000000;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .custom-select select:hover {
+          background-color: rgba(255, 255, 255, 1);
+        }
+
+        .custom-select select:focus {
+          outline: none;
+          border-color: var(--accent-color);
+          background-color: rgba(255, 255, 255, 1);
+        }
+
+        .custom-select .select-arrow {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 0;
+          height: 0;
+          border-left: 5px solid transparent;
+          border-right: 5px solid transparent;
+          border-top: 5px solid #000000;
+          pointer-events: none;
+        }
+
+        .custom-select select:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .custom-select select option {
+          background-color: white;
+          color: black;
+        }
+
+        .loading-text {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid transparent;
+          border-top-color: currentColor;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .edit-buttons {
+          display: flex;
+          justify-content: flex-end;
+          gap: 15px;
+          margin-top: 20px;
+        }
+
+        .edit-buttons button {
+          min-width: 100px;
+        }
+
+        .edit-buttons button:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
       `}</style>
     </div>
