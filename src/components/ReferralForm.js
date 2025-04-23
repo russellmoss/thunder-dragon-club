@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db, auth } from '../firebase/config';
 import '../styles/global.css';
 
 const ReferralForm = ({ onClose, onSuccess, referringMember }) => {
@@ -92,6 +92,10 @@ const ReferralForm = ({ onClose, onSuccess, referringMember }) => {
         return;
       }
 
+      // Get current admin's name
+      const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
+      const adminName = adminDoc.exists() ? `${adminDoc.data().firstName} ${adminDoc.data().lastName}` : 'Unknown Admin';
+
       // Calculate points to award based on referring member's type
       const pointsToAward = referringMember.memberType === 'trade' 
         ? pointsConfig.tradeReferralPoints 
@@ -113,7 +117,8 @@ const ReferralForm = ({ onClose, onSuccess, referringMember }) => {
         referralName: `${formData.firstName} ${formData.lastName}`,
         date: new Date(),
         status: 'pending',
-        pointsEarned: pointsToAward
+        pointsEarned: pointsToAward,
+        createdBy: adminName
       });
 
       // Update referring member's points

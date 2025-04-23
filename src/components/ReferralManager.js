@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, doc, getDoc, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { collection, query, where, getDocs, doc, getDoc, orderBy, limit, addDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
 import ReferralForm from './ReferralForm';
@@ -16,6 +16,11 @@ const ReferralManager = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [showReferralForm, setShowReferralForm] = useState(false);
+  const [referredBy, setReferredBy] = useState('');
+  const [notes, setNotes] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedMember, setSelectedMember] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Add state for points configuration
   const [pointsConfig, setPointsConfig] = useState({
@@ -126,6 +131,49 @@ const ReferralManager = () => {
     setShowReferralForm(false);
     setSelectedReferrer(null);
     setSuccessMessage('Referral registered successfully!');
+  };
+
+  const handleSubmitReferral = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMessage('');
+    setIsSubmitting(true);
+
+    try {
+      if (!selectedMember) {
+        throw new Error('Please select a member first.');
+      }
+
+      // Get current admin's name
+      const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
+      const adminName = adminDoc.exists() ? `${adminDoc.data().firstName} ${adminDoc.data().lastName}` : 'Unknown Admin';
+      
+      // Record the referral
+      const referralData = {
+        memberId: selectedMember.id,
+        memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
+        referredBy: referredBy.trim(),
+        date: new Date(date),
+        notes: notes.trim() || 'Referral recorded',
+        createdAt: new Date(),
+        createdBy: adminName
+      };
+
+      await addDoc(collection(db, 'referrals'), referralData);
+      
+      setSuccessMessage('Referral recorded successfully!');
+      
+      // Reset form
+      setReferredBy('');
+      setNotes('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setSelectedMember(null);
+    } catch (error) {
+      console.error('Referral error:', error);
+      setError(error.message || 'Failed to record referral. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

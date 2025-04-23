@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { collection, addDoc, query, getDocs, doc, updateDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, query, getDocs, doc, updateDoc, orderBy, limit, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
 import '../styles/global.css';
 import googleSheetsService from '../utils/googleSheets';
+import { auth } from '../firebase/config';
 
 const RedemptionManager = () => {
   // State for member selection
@@ -20,6 +21,8 @@ const RedemptionManager = () => {
   const [points, setPoints] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState('');
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -105,32 +108,36 @@ const RedemptionManager = () => {
     setIsSubmitting(true);
 
     try {
+      if (!selectedMember) {
+        throw new Error('Please select a member first.');
+      }
+
       const pointsToRedeem = parseInt(points);
       
       if (isNaN(pointsToRedeem) || pointsToRedeem <= 0) {
         throw new Error('Please enter a valid number of points to redeem.');
       }
-      
+
       if (pointsToRedeem > selectedMember.points) {
-        throw new Error('Member does not have enough points for this redemption.');
+        throw new Error('Member does not have enough points to redeem.');
       }
 
-      // Check if member is a referral type
-      if (selectedMember.memberType === 'referral') {
-        throw new Error('Referral members cannot redeem points until they convert to trade or non-trade membership.');
-      }
+      // Get current admin's name
+      const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
+      const adminName = adminDoc.exists() ? `${adminDoc.data().firstName} ${adminDoc.data().lastName}` : 'Unknown Admin';
       
-      // Add redemption record
+      // Record the redemption
       const redemptionData = {
         memberId: selectedMember.id,
         memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
         points: pointsToRedeem,
-        item: description,
-        notes: description,
-        date: new Date(),
-        createdAt: new Date()
+        item: description.trim() || 'Points redemption',
+        date: new Date(date),
+        notes: notes.trim() || 'Points redemption',
+        createdAt: new Date(),
+        createdBy: adminName
       };
-      
+
       const redemptionRef = await addDoc(collection(db, 'redemptions'), redemptionData);
       
       // Backup to Google Sheets
@@ -145,13 +152,16 @@ const RedemptionManager = () => {
         points: selectedMember.points - pointsToRedeem
       });
       
-      setSuccessMessage('Points redeemed successfully!');
+      setSuccessMessage(`Redemption recorded successfully! ${pointsToRedeem} points redeemed.`);
+      
+      // Reset form
       setPoints('');
-      setDescription('');
+      setNotes('');
+      setDate(new Date().toISOString().split('T')[0]);
       setSelectedMember(null);
     } catch (error) {
       console.error('Redemption error:', error);
-      setError(error.message || 'Failed to process redemption. Please try again.');
+      setError(error.message || 'Failed to record redemption. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -260,6 +270,20 @@ const RedemptionManager = () => {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="What are these points being redeemed for?"
             required
+          />
+          <InputField 
+            label="Date"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+          />
+          <InputField 
+            label="Notes"
+            type="text"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Notes about the redemption"
           />
           <Button 
             text={isSubmitting ? "Processing..." : "Redeem Points"}

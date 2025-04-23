@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { doc, updateDoc, increment, addDoc, collection } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { doc, updateDoc, increment, addDoc, collection, getDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 
 const PointAdjustmentModal = ({ member, onClose, onSuccess }) => {
@@ -28,6 +28,10 @@ const PointAdjustmentModal = ({ member, onClose, onSuccess }) => {
         throw new Error('Admin authentication required');
       }
 
+      // Get current admin's name
+      const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
+      const adminName = adminDoc.exists() ? `${adminDoc.data().firstName} ${adminDoc.data().lastName}` : 'Unknown Admin';
+
       const pointsNum = parseInt(points);
       const memberRef = doc(db, 'members', member.id);
 
@@ -44,7 +48,7 @@ const PointAdjustmentModal = ({ member, onClose, onSuccess }) => {
         date: new Date(),
         notes: note.trim(),
         type: 'manual_adjustment',
-        adjustedBy: adminUser.email, // Use adminUser instead of currentUser
+        createdBy: adminName,
         memberType: member.memberType || 'non-trade' // Include member type
       });
 

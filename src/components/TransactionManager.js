@@ -5,6 +5,7 @@ import InputField from './InputField';
 import Button from './Button';
 import '../styles/global.css';
 import googleSheetsService from '../utils/googleSheets';
+import { auth } from '../firebase/config';
 
 const TransactionManager = () => {
   // State for member selection
@@ -155,16 +156,21 @@ const TransactionManager = () => {
       
       const pointsEarned = calculatePoints(amount, memberType);
       
+      // Get current admin's name
+      const adminDoc = await getDoc(doc(db, 'admins', auth.currentUser.uid));
+      const adminName = adminDoc.exists() ? `${adminDoc.data().firstName} ${adminDoc.data().lastName}` : 'Unknown Admin';
+      
       // Record the transaction with validated data
       const transactionData = {
         memberId: selectedMember.id,
         memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
-        memberType: memberType, // Use the validated memberType
+        memberType: memberType,
         amount: transactionAmount,
         date: new Date(date),
-        notes: notes.trim() || 'Wine purchase', // Provide default note if empty
+        notes: notes.trim() || 'Wine purchase',
         pointsEarned: pointsEarned,
-        createdAt: new Date()
+        createdAt: new Date(),
+        createdBy: adminName
       };
 
       // Validate all required fields
@@ -184,7 +190,7 @@ const TransactionManager = () => {
       const memberRef = doc(db, 'members', selectedMember.id);
       await updateDoc(memberRef, {
         points: (selectedMember.points || 0) + pointsEarned,
-        memberType: memberType // Also ensure member document has memberType
+        memberType: memberType
       });
       
       setSuccessMessage(`Transaction recorded successfully! ${pointsEarned} points awarded.`);

@@ -164,6 +164,7 @@ const MemberDetails = ({ member, onClose }) => {
               <th>Amount</th>
               <th>Points Earned</th>
               <th>Notes</th>
+              <th>Created By</th>
             </tr>
           </thead>
           <tbody>
@@ -173,6 +174,7 @@ const MemberDetails = ({ member, onClose }) => {
                 <td>{formatCurrency(transaction.amount || 0)}</td>
                 <td>{transaction.pointsEarned}</td>
                 <td>{transaction.notes || '-'}</td>
+                <td>{transaction.createdBy || '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -194,6 +196,7 @@ const MemberDetails = ({ member, onClose }) => {
               <th>Points Redeemed</th>
               <th>Item</th>
               <th>Notes</th>
+              <th>Created By</th>
             </tr>
           </thead>
           <tbody>
@@ -203,6 +206,7 @@ const MemberDetails = ({ member, onClose }) => {
                 <td>{redemption.points}</td>
                 <td>{redemption.item}</td>
                 <td>{redemption.notes || '-'}</td>
+                <td>{redemption.createdBy || '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -224,6 +228,7 @@ const MemberDetails = ({ member, onClose }) => {
               <th>Referred Person</th>
               <th>Points Earned</th>
               <th>Notes</th>
+              <th>Created By</th>
             </tr>
           </thead>
           <tbody>
@@ -233,6 +238,7 @@ const MemberDetails = ({ member, onClose }) => {
                 <td>{referral.referralName}</td>
                 <td>{referral.pointsEarned}</td>
                 <td>{referral.notes || '-'}</td>
+                <td>{referral.createdBy || '-'}</td>
               </tr>
             ))}
           </tbody>
