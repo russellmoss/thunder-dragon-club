@@ -7,11 +7,23 @@ import MemberDashboard from './pages/member/Dashboard';
 import MemberSignup from './pages/member/Signup';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import ProtectedMemberRoute from './components/ProtectedMemberRoute';
+import NetworkStatus from './components/NetworkStatus';
+import BackgroundSync from './components/BackgroundSync';
+import MobileNavigation from './components/MobileNavigation';
+import InstallPrompt from './components/InstallPrompt';
+import NotificationPermission from './components/NotificationPermission';
+import InstallPage from './components/InstallPage';
 import './styles/global.css';
+import './styles/mobile.css';
 
 function App() {
   return (
     <Router>
+      <NetworkStatus />
+      <BackgroundSync />
+      <MobileNavigation />
+      <InstallPrompt />
+      <NotificationPermission />
       <Routes>
         {/* Member Routes */}
         <Route path="/" element={<MemberLogin />} />
@@ -35,6 +47,9 @@ function App() {
             </ProtectedAdminRoute>
           } 
         />
+        
+        {/* Install Page */}
+        <Route path="/install" element={<InstallPage />} />
         
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" />} />

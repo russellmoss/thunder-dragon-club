@@ -107,6 +107,22 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // deviceTokens collection
+    match /deviceTokens/{tokenId} {
+      allow read: if isAuthenticated() && 
+        (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && 
+        (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+    
+    // notifications collection
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && 
+        (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isAdmin();
+    }
+
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;

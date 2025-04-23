@@ -14,6 +14,7 @@ import DownloadGuide from './DownloadGuide';
 import CSVExport from './CSVExport';
 import ReportingDashboard from './ReportingDashboard';
 import MemberForm from './MemberForm';
+import NotificationSettings from './NotificationSettings';
 import '../styles/global.css';
 
 const Dashboard = () => {
@@ -120,6 +121,10 @@ const Dashboard = () => {
           <div className="section-content">
             <ConfigManager />
             <BackupManager />
+            <div className="settings-section">
+              <h2>Notification Settings</h2>
+              <NotificationSettings />
+            </div>
             <div className="settings-section">
               <h2>Documentation</h2>
               <DownloadGuide />

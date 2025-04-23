@@ -3,10 +3,16 @@ import { collection, addDoc, query, getDocs, doc, updateDoc, getDoc, orderBy, li
 import { db } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
+import { addTransaction, getUnsyncedTransactions, markTransactionSynced } from '../utils/indexedDB';
 import '../styles/global.css';
 import googleSheetsService from '../utils/googleSheets';
+import { useAuth } from '../contexts/AuthContext';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import '../styles/mobile.css';
 
 const TransactionManager = () => {
+  const { currentUser } = useAuth();
+  const isOnline = useNetworkStatus();
   // State for member selection
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('name');
@@ -27,6 +33,16 @@ const TransactionManager = () => {
     nonTradePointsRate: 1,
     tradePointsRate: 2
   });
+
+  // Add sync status state
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState('');
+
+  // Add pending transactions count state
+  const [pendingTransactionsCount, setPendingTransactionsCount] = useState(0);
+
+  // Add success animation state
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Load points configuration on component mount
   useEffect(() => {
@@ -155,39 +171,43 @@ const TransactionManager = () => {
       
       const pointsEarned = calculatePoints(amount, memberType);
       
-      // Record the transaction with validated data
+      // Create transaction object
       const transactionData = {
         memberId: selectedMember.id,
         memberName: `${selectedMember.firstName} ${selectedMember.lastName}`,
-        memberType: memberType, // Use the validated memberType
+        memberType: memberType,
         amount: transactionAmount,
         date: new Date(date),
-        notes: notes.trim() || 'Wine purchase', // Provide default note if empty
+        notes: notes.trim() || 'Wine purchase',
         pointsEarned: pointsEarned,
-        createdAt: new Date()
+        createdAt: new Date(),
+        status: isOnline ? 'synced' : 'pending'
       };
 
-      // Validate all required fields
-      if (!transactionData.memberId || !transactionData.memberName) {
-        throw new Error('Invalid member data. Please try selecting the member again.');
+      if (isOnline) {
+        // Online - submit directly to Firebase
+        const transactionRef = await addDoc(collection(db, 'transactions'), transactionData);
+        
+        // Update member's points
+        const memberRef = doc(db, 'members', selectedMember.id);
+        await updateDoc(memberRef, {
+          points: (selectedMember.points || 0) + pointsEarned
+        });
+        
+        // Backup to Google Sheets
+        await googleSheetsService.backupTransaction({
+          id: transactionRef.id,
+          ...transactionData
+        });
+        
+        setSuccessMessage(`Transaction recorded successfully! ${pointsEarned} points awarded.`);
+      } else {
+        // Offline - store in IndexedDB
+        await addTransaction(transactionData);
+        
+        // Update local UI to reflect change
+        setSuccessMessage(`Transaction saved offline. ${pointsEarned} points will be awarded when you're back online.`);
       }
-      
-      const transactionRef = await addDoc(collection(db, 'transactions'), transactionData);
-      
-      // Backup to Google Sheets
-      await googleSheetsService.backupTransaction({
-        id: transactionRef.id,
-        ...transactionData
-      });
-      
-      // Update member's points
-      const memberRef = doc(db, 'members', selectedMember.id);
-      await updateDoc(memberRef, {
-        points: (selectedMember.points || 0) + pointsEarned,
-        memberType: memberType // Also ensure member document has memberType
-      });
-      
-      setSuccessMessage(`Transaction recorded successfully! ${pointsEarned} points awarded.`);
       
       // Reset form
       setAmount('');
@@ -209,10 +229,138 @@ const TransactionManager = () => {
     }).format(amount)}`;
   };
 
+  // Function to sync offline transactions
+  const syncOfflineTransactions = async () => {
+    if (isSyncing) return;
+    
+    setIsSyncing(true);
+    setShowSuccess(false);
+    setSyncMessage('Syncing offline transactions...');
+    
+    try {
+      // Get all unsynced transactions from IndexedDB
+      const unsyncedTransactions = await getUnsyncedTransactions();
+      
+      if (unsyncedTransactions.length === 0) {
+        setSyncMessage('All transactions are synced!');
+        setIsSyncing(false);
+        return;
+      }
+      
+      let successCount = 0;
+      let errorCount = 0;
+      
+      // Process each unsynced transaction
+      for (const transaction of unsyncedTransactions) {
+        try {
+          // Submit to Firebase
+          const transactionRef = await addDoc(collection(db, 'transactions'), {
+            ...transaction,
+            status: 'synced'
+          });
+          
+          // Update member's points
+          const memberRef = doc(db, 'members', transaction.memberId);
+          await updateDoc(memberRef, {
+            points: (transaction.points || 0) + transaction.pointsEarned
+          });
+          
+          // Backup to Google Sheets
+          await googleSheetsService.backupTransaction({
+            id: transactionRef.id,
+            ...transaction
+          });
+          
+          // Mark as synced in IndexedDB
+          await markTransactionSynced(transaction.localId, transactionRef.id);
+          
+          successCount++;
+        } catch (error) {
+          console.error('Error syncing transaction:', error);
+          errorCount++;
+        }
+      }
+      
+      setSyncMessage(`Synced ${successCount} transactions. ${errorCount} failed.`);
+      
+      // Show success animation if all transactions were synced successfully
+      if (errorCount === 0 && successCount > 0) {
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+        }, 2000); // Hide after 2 seconds
+      }
+    } catch (error) {
+      console.error('Error during sync:', error);
+      setSyncMessage('Error syncing transactions. Please try again.');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Function to check for pending transactions
+  const checkPendingTransactions = async () => {
+    try {
+      const unsyncedTransactions = await getUnsyncedTransactions();
+      setPendingTransactionsCount(unsyncedTransactions.length);
+    } catch (error) {
+      console.error('Error checking pending transactions:', error);
+    }
+  };
+
+  // Update the useEffect to include checking pending transactions
+  useEffect(() => {
+    const handleOnline = () => {
+      if (navigator.onLine) {
+        syncOfflineTransactions();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    
+    // Initial check if we're online
+    if (navigator.onLine) {
+      syncOfflineTransactions();
+    }
+    
+    // Check for pending transactions periodically
+    checkPendingTransactions();
+    const interval = setInterval(checkPendingTransactions, 30000); // Check every 30 seconds
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      clearInterval(interval);
+    };
+  }, []);
+
   return (
     <div className="transaction-manager-container">
       <div className="section-header">
         <h2>Transaction Management</h2>
+        {pendingTransactionsCount > 0 && (
+          <div className="sync-button-container">
+            <Button
+              text={
+                showSuccess ? (
+                  <span className="sync-button-content">
+                    <span className="success-check"></span>
+                    <span>Synced!</span>
+                  </span>
+                ) : isSyncing ? (
+                  <span className="sync-button-content">
+                    <span className="spinner"></span>
+                    <span>Syncing...</span>
+                  </span>
+                ) : (
+                  `Sync ${pendingTransactionsCount} Pending Transaction${pendingTransactionsCount > 1 ? 's' : ''}`
+                )
+              }
+              onClick={syncOfflineTransactions}
+              disabled={isSyncing || !navigator.onLine}
+              className={`sync-button ${isSyncing ? 'syncing' : ''} ${showSuccess ? 'success' : ''}`}
+            />
+          </div>
+        )}
       </div>
       
       {error && <div className="error-message">{error}</div>}
@@ -347,6 +495,144 @@ const TransactionManager = () => {
           />
         </form>
       )}
+      
+      {/* Add sync status display */}
+      {syncMessage && (
+        <div className={`sync-message ${isSyncing ? 'syncing' : ''}`}>
+          {syncMessage}
+        </div>
+      )}
+      
+      <style jsx>{`
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 20px;
+        }
+        
+        .sync-button-container {
+          display: flex;
+          align-items: center;
+        }
+        
+        .sync-button {
+          background-color: var(--accent-color);
+          color: #000000;
+          padding: 8px 16px;
+          border-radius: 4px;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+          min-width: 180px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        
+        .sync-button.syncing {
+          background-color: rgba(255, 152, 0, 0.8);
+        }
+        
+        .sync-button.success {
+          background-color: rgba(76, 175, 80, 0.8);
+          animation: success-pulse 0.5s ease-out;
+        }
+        
+        .sync-button:disabled {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.5);
+          cursor: not-allowed;
+        }
+        
+        .sync-button:not(:disabled):hover {
+          background-color: var(--accent-color-hover);
+          transform: translateY(-1px);
+        }
+        
+        .sync-button-content {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(0, 0, 0, 0.1);
+          border-radius: 50%;
+          border-top-color: #000000;
+          animation: spin 1s linear infinite;
+        }
+        
+        .success-check {
+          width: 16px;
+          height: 16px;
+          position: relative;
+        }
+        
+        .success-check:before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 0;
+          width: 8px;
+          height: 4px;
+          border: 2px solid #000000;
+          border-top: none;
+          border-right: none;
+          transform: translateY(-50%) rotate(-45deg);
+          animation: check-draw 0.3s ease-out forwards;
+        }
+        
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        @keyframes check-draw {
+          0% {
+            width: 0;
+            height: 0;
+            opacity: 0;
+          }
+          50% {
+            width: 8px;
+            height: 0;
+            opacity: 1;
+          }
+          100% {
+            width: 8px;
+            height: 4px;
+            opacity: 1;
+          }
+        }
+        
+        @keyframes success-pulse {
+          0% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.05);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+        
+        .sync-message {
+          margin: 10px 0;
+          padding: 10px;
+          border-radius: 4px;
+          background-color: rgba(25, 118, 210, 0.1);
+          color: var(--text-color);
+          text-align: center;
+        }
+        
+        .sync-message.syncing {
+          background-color: rgba(255, 152, 0, 0.1);
+        }
+      `}</style>
     </div>
   );
 };

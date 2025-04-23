@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Worker Test</title>
+    <style>
+        body {
+            font-family: 'Playfair Display', serif;
+            background-color: #1A1A1A;
+            color: #FFFFFF;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #FFD700;
+        }
+
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        .success {
+            background-color: rgba(0, 255, 0, 0.2);
+        }
+
+        .error {
+            background-color: rgba(255, 0, 0, 0.2);
+        }
+
+        button {
+            background-color: #FFD700;
+            color: #000000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+
+        #log {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Service Worker Test</h1>
+    
+    <div id="swStatus" class="status">Checking service worker status...</div>
+    
+    <div>
+        <h2>Push Notifications</h2>
+        <div id="notificationStatus" class="status">Checking notification permission...</div>
+        <button id="requestPermission" disabled>Request Permission</button>
+        <button id="testNotification" disabled>Test Notification</button>
+    </div>
+
+    <div>
+        <h2>Offline Functionality</h2>
+        <div id="offlineStatus" class="status">Checking offline capability...</div>
+        <button id="testOffline">Test Offline</button>
+    </div>
+
+    <div id="log">
+        <div class="log-entry">Test log initialized...</div>
+    </div>
+
+    <script>
+        const log = document.getElementById('log');
+        const swStatus = document.getElementById('swStatus');
+        const notificationStatus = document.getElementById('notificationStatus');
+        const offlineStatus = document.getElementById('offlineStatus');
+        const requestPermissionBtn = document.getElementById('requestPermission');
+        const testNotificationBtn = document.getElementById('testNotification');
+        const testOfflineBtn = document.getElementById('testOffline');
+
+        function addLog(message) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            log.insertBefore(entry, log.firstChild);
+        }
+
+        // Check service worker registration
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    swStatus.textContent = 'Service Worker registered successfully!';
+                    swStatus.className = 'status success';
+                    addLog('Service Worker registered');
+
+                    // Check notification permission
+                    if ('Notification' in window) {
+                        const permission = Notification.permission;
+                        notificationStatus.textContent = `Notification permission: ${permission}`;
+                        
+                        if (permission === 'default') {
+                            requestPermissionBtn.disabled = false;
+                        } else if (permission === 'granted') {
+                            testNotificationBtn.disabled = false;
+                        }
+
+                        requestPermissionBtn.addEventListener('click', async () => {
+                            try {
+                                const result = await Notification.requestPermission();
+                                notificationStatus.textContent = `Notification permission: ${result}`;
+                                if (result === 'granted') {
+                                    testNotificationBtn.disabled = false;
+                                }
+                                addLog(`Notification permission result: ${result}`);
+                            } catch (error) {
+                                addLog(`Error requesting permission: ${error}`);
+                            }
+                        });
+
+                        testNotificationBtn.addEventListener('click', () => {
+                            registration.showNotification('Test Notification', {
+                                body: 'This is a test notification from Thunder Dragon Club',
+                                icon: '/icons/logo-192.png',
+                                badge: '/icons/badge-96.png',
+                                vibrate: [200, 100, 200]
+                            });
+                            addLog('Test notification sent');
+                        });
+                    }
+                })
+                .catch(error => {
+                    swStatus.textContent = `Service Worker registration failed: ${error}`;
+                    swStatus.className = 'status error';
+                    addLog(`Service Worker registration error: ${error}`);
+                });
+        } else {
+            swStatus.textContent = 'Service Workers are not supported';
+            swStatus.className = 'status error';
+            addLog('Service Workers not supported');
+        }
+
+        // Test offline functionality
+        testOfflineBtn.addEventListener('click', async () => {
+            try {
+                const cache = await caches.open('test-cache');
+                await cache.put('/test-offline', new Response('Test successful'));
+                const response = await cache.match('/test-offline');
+                if (response) {
+                    offlineStatus.textContent = 'Offline caching is working!';
+                    offlineStatus.className = 'status success';
+                    addLog('Offline cache test successful');
+                }
+            } catch (error) {
+                offlineStatus.textContent = `Offline test failed: ${error}`;
+                offlineStatus.className = 'status error';
+                addLog(`Offline cache test error: ${error}`);
+            }
+        });
+
+        // Monitor online/offline status
+        window.addEventListener('online', () => {
+            addLog('App is online');
+        });
+
+        window.addEventListener('offline', () => {
+            addLog('App is offline');
+        });
+    </script>
+</body>
+</html> 
