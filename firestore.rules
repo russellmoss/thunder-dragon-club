@@ -39,15 +39,19 @@ service cloud.firestore {
         isOwnDocument(memberId) ||
         resource.data.email == request.auth.token.email
       );
-      allow list: if isAuthenticated() && (
+      allow list: if 
         isAdmin() ||
-        request.query.limit <= 1 && (
-          (request.query.filters.size() == 1 && 
-           request.query.filters[0].op == '==' && 
-           request.query.filters[0].path == 'email' && 
-           request.query.filters[0].value == request.auth.token.email)
-        )
-      );
+        (request.query.limit <= 100 && (
+          request.query.filters.size() == 1 && 
+          request.query.filters[0].op == '==' && 
+          request.query.filters[0].path == 'email'
+        )) ||
+        (isAuthenticated() && request.query.limit <= 1 && (
+          request.query.filters.size() == 1 && 
+          request.query.filters[0].op == '==' && 
+          request.query.filters[0].path == 'email' && 
+          request.query.filters[0].value == request.auth.token.email
+        ));
       allow create: if isAdmin();
       allow update: if isAuthenticated() && (
         isAdmin() || 

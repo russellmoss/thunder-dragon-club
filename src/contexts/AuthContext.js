@@ -105,32 +105,70 @@ export function AuthProvider({ children }) {
 
   async function checkMemberExists(email) {
     try {
-      const memberQuery = query(collection(db, 'members'), where('email', '==', email));
-      const memberSnapshot = await getDocs(memberQuery);
-      return !memberSnapshot.empty;
+      // Add retry logic for Edge's security features
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          const memberQuery = query(
+            collection(db, 'members'), 
+            where('email', '==', email.toLowerCase())
+          );
+          const memberSnapshot = await getDocs(memberQuery);
+          return !memberSnapshot.empty;
+        } catch (error) {
+          if (error.code === 'permission-denied' && retryCount < maxRetries - 1) {
+            retryCount++;
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+          throw error;
+        }
+      }
     } catch (error) {
       console.error('Error checking member existence:', error);
-      return false;
+      throw error; // Throw the error instead of returning false
     }
   }
 
   async function getMemberData(email) {
     try {
-      const memberQuery = query(collection(db, 'members'), where('email', '==', email));
-      const memberSnapshot = await getDocs(memberQuery);
+      // Add retry logic for Edge's security features
+      let retryCount = 0;
+      const maxRetries = 3;
       
-      if (memberSnapshot.empty) {
-        return null;
+      while (retryCount < maxRetries) {
+        try {
+          const memberQuery = query(
+            collection(db, 'members'), 
+            where('email', '==', email.toLowerCase())
+          );
+          const memberSnapshot = await getDocs(memberQuery);
+          
+          if (memberSnapshot.empty) {
+            return null;
+          }
+          
+          const memberDoc = memberSnapshot.docs[0];
+          return {
+            id: memberDoc.id,
+            ...memberDoc.data()
+          };
+        } catch (error) {
+          if (error.code === 'permission-denied' && retryCount < maxRetries - 1) {
+            retryCount++;
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+          throw error;
+        }
       }
-      
-      const memberDoc = memberSnapshot.docs[0];
-      return {
-        id: memberDoc.id,
-        ...memberDoc.data()
-      };
     } catch (error) {
       console.error('Error getting member data:', error);
-      return null;
+      throw error; // Throw the error instead of returning null
     }
   }
 
@@ -141,8 +179,24 @@ export function AuthProvider({ children }) {
         throw new Error('No member account found with this email');
       }
       
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      return userCredential;
+      // Add retry logic for Edge's security features
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          return userCredential;
+        } catch (error) {
+          if (error.code === 'permission-denied' && retryCount < maxRetries - 1) {
+            retryCount++;
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+          throw error;
+        }
+      }
     } catch (error) {
       throw error;
     }
