@@ -242,6 +242,11 @@ const MemberDashboard = () => {
       description = 'Points Adjustment';
       pointsChange = activity.pointsEarned;
       details = activity.notes || '';
+    } else if ('referralName' in activity) {
+      activityType = 'referral';
+      description = `Referral: ${activity.referralName}`;
+      pointsChange = activity.pointsEarned;
+      details = activity.notes || '';
     } else if ('pointsEarned' in activity) {
       activityType = 'transaction';
       description = `Purchase: ${activity.notes || 'Wine purchase'}`;
@@ -253,11 +258,6 @@ const MemberDashboard = () => {
       activityType = 'redemption';
       description = `Redemption: ${activity.item || 'Points redeemed'}`;
       pointsChange = -activity.points;
-      details = activity.notes || '';
-    } else if ('referralName' in activity) {
-      activityType = 'referral';
-      description = `Referral: ${activity.referralName}`;
-      pointsChange = activity.pointsEarned;
       details = activity.notes || '';
     }
 

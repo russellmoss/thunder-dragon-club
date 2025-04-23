@@ -41,11 +41,14 @@ service cloud.firestore {
       );
       allow list: if 
         isAdmin() ||
-        // Allow unauthenticated email existence checks for password reset
+        // Allow unauthenticated email existence checks for password reset and password creation
         (request.query.limit <= 1 && 
           request.query.filters.size() == 1 && 
           request.query.filters[0].op == '==' && 
-          request.query.filters[0].path == 'email'
+          request.query.filters[0].path == 'email' &&
+          // Allow if the member exists and has no password set
+          (exists(/databases/$(database)/documents/members/$(memberId)) && 
+           !get(/databases/$(database)/documents/members/$(memberId)).data.password)
         ) ||
         (isAuthenticated() && request.query.limit <= 1 && (
           request.query.filters.size() == 1 && 
