@@ -250,6 +250,15 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function resetPassword(email) {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      throw error;
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -306,7 +315,8 @@ export function AuthProvider({ children }) {
     updateMemberProfile,
     updateMemberEmail,
     updatePassword,
-    getMemberData
+    getMemberData,
+    resetPassword
   };
 
   return (

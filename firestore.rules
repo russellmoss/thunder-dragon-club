@@ -41,11 +41,12 @@ service cloud.firestore {
       );
       allow list: if 
         isAdmin() ||
-        (request.query.limit <= 100 && (
+        // Allow unauthenticated email existence checks for password reset
+        (request.query.limit <= 1 && 
           request.query.filters.size() == 1 && 
           request.query.filters[0].op == '==' && 
           request.query.filters[0].path == 'email'
-        )) ||
+        ) ||
         (isAuthenticated() && request.query.limit <= 1 && (
           request.query.filters.size() == 1 && 
           request.query.filters[0].op == '==' && 

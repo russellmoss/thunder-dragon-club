@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import Header from '../../components/Header';
 import InputField from '../../components/InputField';
 import Button from '../../components/Button';
+import PasswordReset from '../../components/PasswordReset';
 import '../../styles/global.css';
 
 const MemberLogin = () => {
@@ -12,6 +13,7 @@ const MemberLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { memberLogin } = useAuth();
   const navigate = useNavigate();
 
@@ -80,11 +82,22 @@ const MemberLogin = () => {
           
           <div className="login-links">
             <Link to="/signup" className="signup-link">Don't have an account? Set one up</Link>
+            <button 
+              type="button" 
+              onClick={() => setShowPasswordReset(true)} 
+              className="forgot-password-link"
+            >
+              Forgot Password?
+            </button>
           </div>
         </form>
       </div>
 
-      <style jsx>{`
+      {showPasswordReset && (
+        <PasswordReset onClose={() => setShowPasswordReset(false)} />
+      )}
+
+      <style>{`
         .login-container {
           max-width: 400px;
           margin: 40px auto;
@@ -130,6 +143,9 @@ const MemberLogin = () => {
         .login-links {
           text-align: center;
           margin-top: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
         }
         
         .signup-link {
@@ -139,6 +155,20 @@ const MemberLogin = () => {
         }
         
         .signup-link:hover {
+          text-decoration: underline;
+        }
+
+        .forgot-password-link {
+          background: none;
+          border: none;
+          color: var(--accent-color);
+          text-decoration: none;
+          font-size: 0.9rem;
+          cursor: pointer;
+          padding: 0;
+        }
+
+        .forgot-password-link:hover {
           text-decoration: underline;
         }
       `}</style>
