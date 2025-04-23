@@ -13,6 +13,8 @@ const COLLECTIONS = {
   redemptions: 'redemptions'
 };
 
+const BACKUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
 const BackupManager = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -54,17 +56,9 @@ const BackupManager = () => {
     };
 
     checkAndRunBackup();
-    const intervalId = setInterval(checkAndRunBackup, 1000 * 60 * 5);
+    const intervalId = setInterval(checkAndRunBackup, 1000 * 60 * 5); // Check every 5 minutes
     return () => clearInterval(intervalId);
-  }, [isAutomatedBackupEnabled, backupInterval, lastBackupDate]);
-
-  useEffect(() => {
-    const backupInterval = setInterval(() => {
-      handleBackupAll();
-    }, BACKUP_INTERVAL);
-
-    return () => clearInterval(backupInterval);
-  }, [handleBackupAll, storage]);
+  }, [isAutomatedBackupEnabled, backupInterval, lastBackupDate, storage]);
 
   const handleBackupAll = async (isAutomatic = false) => {
     if (!storage) {
