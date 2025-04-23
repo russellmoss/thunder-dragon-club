@@ -126,6 +126,10 @@ const CSVExport = () => {
           });
           await downloadCSV(redemptionData, `thunder-dragon-redemptions-${timestamp}.csv`);
           break;
+
+        default:
+          console.warn(`Unsupported data type: ${selectedExport}`);
+          break;
       }
 
       setSuccessMessage(`${EXPORT_TYPES[selectedExport]} exported successfully!`);

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
 const InstallPrompt = () => {
-  const [showPrompt, setShowPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
   const [promptType, setPromptType] = useState(null);
   const [installEvent, setInstallEvent] = useState(null);
-  const [dismissed, setDismissed] = useState(false);
   
   useEffect(() => {
     // Check if the app is already installed
@@ -15,7 +15,7 @@ const InstallPrompt = () => {
     const hasUserDismissed = localStorage.getItem('installPromptDismissed');
     
     if (isStandalone || hasUserDismissed) {
-      setShowPrompt(false);
+      setIsVisible(false);
       return;
     }
     
@@ -26,7 +26,7 @@ const InstallPrompt = () => {
     
     if (isIOS) {
       setPromptType('ios');
-      setShowPrompt(true);
+      setIsVisible(true);
     } else if (isAndroid && isChrome) {
       setPromptType('android');
       
@@ -36,7 +36,7 @@ const InstallPrompt = () => {
         e.preventDefault();
         // Store the event for later use
         setInstallEvent(e);
-        setShowPrompt(true);
+        setIsVisible(true);
       };
       
       window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -56,18 +56,17 @@ const InstallPrompt = () => {
       const { outcome } = await installEvent.userChoice;
       
       if (outcome === 'accepted') {
-        setShowPrompt(false);
+        setIsVisible(false);
       }
     }
   };
   
   const handleDismiss = () => {
-    setShowPrompt(false);
-    setDismissed(true);
+    setIsVisible(false);
     localStorage.setItem('installPromptDismissed', 'true');
   };
   
-  if (!showPrompt) return null;
+  if (!isVisible) return null;
   
   return (
     <div className="install-prompt">

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, setDoc, deleteDoc, doc, updateDoc, query, where, serverTimestamp } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { db, auth } from '../firebase/config';
+import { db } from '../firebase/config';
 import InputField from './InputField';
 import Button from './Button';
 import '../styles/global.css';

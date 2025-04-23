@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, getDocs, orderBy, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import Button from './Button';
@@ -6,96 +6,43 @@ import '../styles/global.css';
 import PointAdjustmentModal from './PointAdjustmentModal';
 import DeleteMemberModal from './DeleteMemberModal';
 
-const MemberDetails = ({ member, onClose }) => {
-  const [isLoading, setIsLoading] = useState(true);
+const MemberDetails = ({ memberId }) => {
+  const [member, setMember] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [redemptions, setRedemptions] = useState([]);
   const [referrals, setReferrals] = useState([]);
   const [activeTab, setActiveTab] = useState('transactions');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [success, setSuccess] = useState('');
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [memberData, setMemberData] = useState(member);
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
-    firstName: member.firstName,
-    lastName: member.lastName,
-    email: member.email,
-    phone: member.phone || '',
-    memberType: member.memberType || 'non-trade'
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    memberType: 'non-trade'
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  const fetchMemberData = async () => {
-    setIsLoading(true);
-    setError('');
+  const fetchMemberData = useCallback(async () => {
     try {
-      // Log the member ID we're querying for
-      console.log('Fetching data for member ID:', member.id);
-
-      // Fetch transactions
-      const transactionsQuery = query(
-        collection(db, 'transactions'),
-        where('memberId', '==', member.id),
-        orderBy('date', 'desc')
-      );
-      const transactionsSnapshot = await getDocs(transactionsQuery);
-      const transactionsData = transactionsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      console.log('Transactions found:', transactionsData.length);
-      setTransactions(transactionsData);
-
-      // Fetch redemptions
-      const redemptionsQuery = query(
-        collection(db, 'redemptions'),
-        where('memberId', '==', member.id),
-        orderBy('date', 'desc')
-      );
-      const redemptionsSnapshot = await getDocs(redemptionsQuery);
-      const redemptionsData = redemptionsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      console.log('Redemptions found:', redemptionsData.length);
-      setRedemptions(redemptionsData);
-
-      // Fetch referrals
-      const referralsQuery = query(
-        collection(db, 'referrals'),
-        where('memberId', '==', member.id),
-        orderBy('date', 'desc')
-      );
-      const referralsSnapshot = await getDocs(referralsQuery);
-      const referralsData = referralsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      console.log('Referrals found:', referralsData.length);
-      setReferrals(referralsData);
-
-      const memberDoc = await getDoc(doc(db, 'members', member.id));
+      const memberDoc = await getDoc(doc(db, 'members', memberId));
       if (memberDoc.exists()) {
-        setMemberData({ id: memberDoc.id, ...memberDoc.data() });
+        setMember(memberDoc.data());
       } else {
         setError('Member not found');
       }
-
-    } catch (error) {
-      console.error('Error fetching member data:', error);
-      setError('Failed to load member details. Please try again.');
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      setError('Error fetching member data');
+      console.error(err);
     }
-  };
+  }, [memberId]);
 
   useEffect(() => {
-    if (member.id) {
-      fetchMemberData();
-    }
-  }, [member.id]);
+    fetchMemberData();
+  }, [memberId, fetchMemberData]);
 
   const formatDate = (date) => {
     if (!date) return 'N/A';
@@ -146,7 +93,7 @@ const MemberDetails = ({ member, onClose }) => {
           </div>
           <div className="summary-item">
             <label>Current Points Balance:</label>
-            <span>{memberData.points || 0}</span>
+            <span>{member?.points || 0}</span>
           </div>
         </div>
       </div>
@@ -243,102 +190,6 @@ const MemberDetails = ({ member, onClose }) => {
     </div>
   );
 
-  const handleExportCSV = () => {
-    // Create CSV content for each section
-    const basicInfo = [
-      ['Basic Information'],
-      ['Name', `${memberData.firstName} ${memberData.lastName}`],
-      ['Email', memberData.email],
-      ['Phone', memberData.phone],
-      ['Member Type', memberData.memberType === 'trade' ? 'Trade' : 'Non-Trade'],
-      ['Current Points', memberData.points || 0],
-      ['Member Since', formatDate(memberData.createdAt)],
-      [],  // Empty row for spacing
-    ];
-
-    const transactionsHeader = [
-      ['Transactions History'],
-      ['Date', 'Amount', 'Points Earned', 'Notes']
-    ];
-    const transactionsData = transactions.map(t => [
-      formatDate(t.date),
-      formatCurrency(t.amount || 0, false),
-      t.pointsEarned,
-      t.notes || ''
-    ]);
-
-    const redemptionsHeader = [
-      [],  // Empty row for spacing
-      ['Redemptions History'],
-      ['Date', 'Points Redeemed', 'Item', 'Notes']
-    ];
-    const redemptionsData = redemptions.map(r => [
-      formatDate(r.date),
-      r.points,
-      r.item || '',
-      r.notes || ''
-    ]);
-
-    const referralsHeader = [
-      [],  // Empty row for spacing
-      ['Referrals History'],
-      ['Date', 'Referred Person', 'Points Earned', 'Notes']
-    ];
-    const referralsData = referrals.map(r => [
-      formatDate(r.date),
-      r.referralName,
-      r.pointsEarned,
-      r.notes || ''
-    ]);
-
-    // Calculate totals
-    const totals = calculateTotals();
-    const summarySection = [
-      [],  // Empty row for spacing
-      ['Summary'],
-      ['Total Spent', formatCurrency(totals.totalTransactions, false)],
-      ['Total Points Earned', totals.totalPointsEarned],
-      ['Total Points Redeemed', totals.totalPointsRedeemed],
-      ['Current Points Balance', memberData.points || 0]
-    ];
-
-    // Combine all sections
-    const csvContent = [
-      ...basicInfo,
-      ...summarySection,
-      [],  // Empty row for spacing
-      ...transactionsHeader,
-      ...transactionsData,
-      ...redemptionsHeader,
-      ...redemptionsData,
-      ...referralsHeader,
-      ...referralsData
-    ];
-
-    // Convert to CSV string
-    const csvString = csvContent.map(row => 
-      row.map(cell => {
-        const cellStr = String(cell).replace(/"/g, '""');
-        return cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n') 
-          ? `"${cellStr}"`
-          : cellStr;
-      }).join(',')
-    ).join('\n');
-
-    // Create and download the file
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const fileName = `${memberData.firstName.toLowerCase()}-${memberData.lastName.toLowerCase()}-member-details.csv`;
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', fileName);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const handleAdjustPoints = () => {
     setShowAdjustmentModal(true);
   };
@@ -354,18 +205,17 @@ const MemberDetails = ({ member, onClose }) => {
 
   const handleDeleteSuccess = () => {
     setShowDeleteModal(false);
-    onClose();
   };
 
   const handleEditToggle = () => {
     if (isEditing) {
       // If we're canceling the edit, reset the form
       setEditedData({
-        firstName: memberData.firstName,
-        lastName: memberData.lastName,
-        email: memberData.email,
-        phone: memberData.phone || '',
-        memberType: memberData.memberType || 'non-trade'
+        firstName: member?.firstName || '',
+        lastName: member?.lastName || '',
+        email: member?.email || '',
+        phone: member?.phone || '',
+        memberType: member?.memberType || 'non-trade'
       });
     }
     setIsEditing(!isEditing);
@@ -408,7 +258,7 @@ const MemberDetails = ({ member, onClose }) => {
         return;
       }
 
-      const memberRef = doc(db, 'members', memberData.id);
+      const memberRef = doc(db, 'members', memberId);
       await updateDoc(memberRef, {
         firstName: editedData.firstName.trim(),
         lastName: editedData.lastName.trim(),
@@ -419,7 +269,7 @@ const MemberDetails = ({ member, onClose }) => {
       });
 
       setSuccess('Member details updated successfully');
-      setMemberData(prev => ({
+      setMember(prev => ({
         ...prev,
         ...editedData,
         searchableName: `${editedData.firstName.toLowerCase()} ${editedData.lastName.toLowerCase()}`
@@ -534,27 +384,27 @@ const MemberDetails = ({ member, onClose }) => {
         <div className="info-grid">
           <div className="info-item">
             <label>First Name:</label>
-            <span>{memberData.firstName}</span>
+            <span>{member?.firstName}</span>
           </div>
           <div className="info-item">
             <label>Last Name:</label>
-            <span>{memberData.lastName}</span>
+            <span>{member?.lastName}</span>
           </div>
           <div className="info-item">
             <label>Email:</label>
-            <span>{memberData.email}</span>
+            <span>{member?.email}</span>
           </div>
           <div className="info-item">
             <label>Phone:</label>
-            <span>{memberData.phone || 'Not provided'}</span>
+            <span>{member?.phone || 'Not provided'}</span>
           </div>
           <div className="info-item">
             <label>Member ID:</label>
-            <span>{memberData.id}</span>
+            <span>{member?.id}</span>
           </div>
           <div className="info-item">
             <label>Member Since:</label>
-            <span>{formatDate(memberData.createdAt)}</span>
+            <span>{formatDate(member?.createdAt)}</span>
           </div>
         </div>
       )}
@@ -567,12 +417,12 @@ const MemberDetails = ({ member, onClose }) => {
       <div className="info-grid">
         <div className="info-item">
           <label>Current Points:</label>
-          <span>{memberData.points || 0}</span>
+          <span>{member?.points || 0}</span>
         </div>
         <div className="info-item">
           <label>Member Type:</label>
-          <span className={`member-type ${memberData.memberType}`}>
-            {getMemberTypeDisplay(memberData.memberType)}
+          <span className={`member-type ${member?.memberType}`}>
+            {getMemberTypeDisplay(member?.memberType)}
           </span>
         </div>
       </div>
@@ -595,7 +445,7 @@ const MemberDetails = ({ member, onClose }) => {
               onClick={handleDeleteMember}
               className="delete-button"
             />
-            <button className="close-button" onClick={onClose}>×</button>
+            <button className="close-button">×</button>
           </div>
         </div>
 
@@ -635,7 +485,7 @@ const MemberDetails = ({ member, onClose }) => {
 
         {showAdjustmentModal && (
           <PointAdjustmentModal
-            member={memberData}
+            member={member}
             onClose={() => setShowAdjustmentModal(false)}
             onSuccess={handleAdjustmentSuccess}
           />
@@ -643,7 +493,7 @@ const MemberDetails = ({ member, onClose }) => {
 
         {showDeleteModal && (
           <DeleteMemberModal
-            member={memberData}
+            member={member}
             onClose={() => setShowDeleteModal(false)}
             onSuccess={handleDeleteSuccess}
           />

@@ -58,6 +58,14 @@ const BackupManager = () => {
     return () => clearInterval(intervalId);
   }, [isAutomatedBackupEnabled, backupInterval, lastBackupDate]);
 
+  useEffect(() => {
+    const backupInterval = setInterval(() => {
+      handleBackupAll();
+    }, BACKUP_INTERVAL);
+
+    return () => clearInterval(backupInterval);
+  }, [handleBackupAll, storage]);
+
   const handleBackupAll = async (isAutomatic = false) => {
     if (!storage) {
       setError('Storage is not initialized. Please check your Firebase configuration.');
