@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
     "@firebase/messaging": "^0.12.17",
-    "@mui/icons-material": "^7.0.2",
-    "@mui/material": "^7.0.2",
+    "@mui/icons-material": "^5.15.10",
+    "@mui/material": "^5.15.10",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -59,6 +59,7 @@
     "@craco/craco": "^7.1.0",
     "path-browserify": "^1.0.1",
     "web-push": "^3.6.7",
+    "webpack": "^5.89.0",
     "workbox-webpack-plugin": "^7.3.0"
   }
 }
